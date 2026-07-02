@@ -1,0 +1,117 @@
+import pandas as pd
+import re
+
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+# ----------------------------
+# Load Dataset
+# ----------------------------
+data = pd.read_csv("phishing_emails.csv")
+
+# ----------------------------
+# Feature Engineering
+# ----------------------------
+
+def preprocess(text):
+
+    text = text.lower()
+
+    # Replace URLs
+    text = re.sub(r"http\\S+|www\\S+", " URL ", text)
+
+    # Remove numbers
+    text = re.sub(r"[0-9]+", " ", text)
+
+    # Remove punctuation
+    text = re.sub(r"[^a-zA-Z ]", " ", text)
+
+    return text
+
+data["email"] = data["email"].apply(preprocess)
+
+# ----------------------------
+# Labels
+# ----------------------------
+
+X = data["email"]
+
+y = data["label"]
+
+# ----------------------------
+# TF-IDF
+# ----------------------------
+
+vectorizer = TfidfVectorizer(stop_words="english")
+
+X_vector = vectorizer.fit_transform(X)
+
+# ----------------------------
+# Train Test Split
+# ----------------------------
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_vector,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+# ----------------------------
+# Train Model
+# ----------------------------
+
+model = LogisticRegression()
+
+model.fit(X_train, y_train)
+
+# ----------------------------
+# Prediction
+# ----------------------------
+
+predictions = model.predict(X_test)
+
+# ----------------------------
+# Accuracy
+# ----------------------------
+
+accuracy = accuracy_score(y_test, predictions)
+
+print("="*40)
+print("PHISHING EMAIL DETECTOR")
+print("="*40)
+
+print("\nAccuracy")
+
+print(accuracy)
+
+print("\nConfusion Matrix")
+
+print(confusion_matrix(y_test, predictions))
+
+print("\nClassification Report")
+
+print(classification_report(y_test, predictions))
+
+# ----------------------------
+# User Email Prediction
+# ----------------------------
+
+print("\n")
+
+email = input("Enter Email Text:\n")
+
+email = preprocess(email)
+
+email_vector = vectorizer.transform([email])
+
+result = model.predict(email_vector)
+
+print("\nPrediction")
+
+if result[0] == "phishing":
+    print("⚠️ PHISHING EMAIL")
+else:
+    print("✅ SAFE EMAIL")
